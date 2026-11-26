@@ -1,4 +1,4 @@
-# codec-by-KyleZ
+# codec-editor
 Codec! is a code editor for writing and working with  projects.
 ## Overview
 Codec! provides a workspace for writing and managing code across multiple programming languages.
