@@ -7,4 +7,4 @@ Codec! provides a workspace for writing and managing code across multiple progra
 ## Support
 For support or inquiries, contact [devkylez0@gmail.com](mailto:devkylez0@gmail.com).
 ## License
-Codec! is proprietary software. The source code is not included in this repository. Unauthorized copying, modification, or redistribution is prohibited.
+Codec! is proprietary software. The source code is included in this repository for reference. Use and distribution are governed by [LICENSE.md](LICENSE.md).

@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: https:; media-src 'self' file: blob:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self'"
+    />
+    <title>Codec</title>
+    <link rel="stylesheet" href="../node_modules/@vscode/codicons/dist/codicon.css" />
+    <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="layout.css" />
+    <link rel="stylesheet" href="vscode.css" />
+    <link rel="stylesheet" href="extensions.css" />
+  </head>
+  <body class="theme-dark">
+    <header id="titlebar">
+      <div class="tb-left">
+        <img class="app-icon" src="logo.png" alt="" />
+        <div id="menubar"></div>
+      </div>
+      <div class="tb-center">
+        <button class="tb-btn" id="tb-back" title="Go Back (Alt+LeftArrow)"><i class="codicon codicon-arrow-left"></i></button>
+        <button class="tb-btn" id="tb-forward" title="Go Forward (Alt+RightArrow)"><i class="codicon codicon-arrow-right"></i></button>
+        <button id="command-center" title="Search files by name (Ctrl+P)"><span id="cc-label">Codec</span></button>
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn" id="tb-toggle-sidebar" title="Toggle Primary Side Bar (Ctrl+B)"><i class="codicon codicon-layout-sidebar-left"></i></button>
+        <button class="tb-btn" id="tb-toggle-panel" title="Toggle Panel (Ctrl+J)"><i class="codicon codicon-layout-panel"></i></button>
+        <div class="wco-space"></div>
+      </div>
+    </header>
+
+    <div id="app">
+      <nav id="activitybar">
+        <button class="act active" data-view="explorer" title="Explorer (Ctrl+Shift+E)"><i class="codicon codicon-files"></i><span class="act-badge hidden" id="dirty-badge"></span></button>
+        <button class="act" data-view="search" title="Search (Ctrl+Shift+F)"><i class="codicon codicon-search"></i></button>
+        <button class="act" data-view="extensions" title="Extensions (Ctrl+Shift+X)"><i class="codicon codicon-extensions"></i></button>
+        <div class="spacer"></div>
+        <button class="act" id="btn-settings" title="Manage"><i class="codicon codicon-settings-gear"></i></button>
+      </nav>
+
+      <aside id="sidebar">
+        <section id="view-explorer" class="view">
+          <header class="view-title">
+            <span data-i18n="Explorer">Explorer</span>
+            <div class="title-actions"><button id="btn-explorer-more" title="Views and More Actions..."><i class="codicon codicon-ellipsis"></i></button></div>
+          </header>
+          <div class="pane">
+            <div class="pane-header" id="explorer-header">
+              <i class="codicon codicon-chevron-down twist"></i>
+              <span id="folder-name" data-i18n="NO FOLDER OPENED">NO FOLDER OPENED</span>
+              <div class="pane-actions">
+                <button id="btn-new-file" title="New File..."><i class="codicon codicon-new-file"></i></button>
+                <button id="btn-new-folder" title="New Folder..."><i class="codicon codicon-new-folder"></i></button>
+                <button id="btn-refresh" title="Refresh Explorer"><i class="codicon codicon-refresh"></i></button>
+                <button id="btn-collapse" title="Collapse Folders in Explorer"><i class="codicon codicon-collapse-all"></i></button>
+              </div>
+            </div>
+            <div class="pane-body" id="explorer-body">
+              <div id="tree" tabindex="0"></div>
+              <div id="no-folder" class="empty-view">
+                <p data-i18n="You have not yet opened a folder.">You have not yet opened a folder.</p>
+                <button class="primary" id="btn-open-folder" data-i18n="Open Folder">Open Folder</button>
+                <p data-i18n="Opening a folder will close all currently open editors. To keep them open, add a folder instead.">Opening a folder will close all currently open editors. To keep them open, add a folder instead.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-extensions" class="view hidden">
+          <header class="view-title">
+            <span data-i18n="Extensions">Extensions</span>
+            <div class="title-actions">
+              <button id="btn-ext-refresh" title="Refresh"><i class="codicon codicon-refresh"></i></button>
+              <button id="btn-ext-more" title="Views and More Actions..."><i class="codicon codicon-ellipsis"></i></button>
+            </div>
+          </header>
+          <div class="ext-search-box">
+            <div class="input-wrap">
+              <input id="ext-search" placeholder="Search Extensions in Open VSX" spellcheck="false" />
+              <div class="input-opts">
+                <button id="btn-ext-clear" title="Clear Extensions Search Results"><i class="codicon codicon-clear-all"></i></button>
+                <button title="Filter Extensions..."><i class="codicon codicon-filter"></i></button>
+              </div>
+            </div>
+          </div>
+          <div id="ext-body"></div>
+        </section>
+
+        <section id="view-search" class="view hidden">
+          <header class="view-title">
+            <span data-i18n="Search">Search</span>
+            <div class="title-actions">
+              <button id="btn-search-refresh" title="Refresh"><i class="codicon codicon-refresh"></i></button>
+              <button id="btn-search-clear" title="Clear Search Results"><i class="codicon codicon-clear-all"></i></button>
+              <button id="btn-search-collapse" title="Collapse All"><i class="codicon codicon-collapse-all"></i></button>
+            </div>
+          </header>
+          <div class="search-box">
+            <div class="search-rows">
+              <button id="btn-toggle-replace" class="replace-twist" title="Toggle Replace"><i class="codicon codicon-chevron-right"></i></button>
+              <div class="search-inputs">
+                <div class="input-wrap">
+                  <input id="search-input" placeholder="Search" spellcheck="false" />
+                  <div class="input-opts">
+                    <button class="toggle" id="opt-case" title="Match Case (Alt+C)"><i class="codicon codicon-case-sensitive"></i></button>
+                    <button class="toggle" id="opt-word" title="Match Whole Word (Alt+W)"><i class="codicon codicon-whole-word"></i></button>
+                    <button class="toggle" id="opt-regex" title="Use Regular Expression (Alt+R)"><i class="codicon codicon-regex"></i></button>
+                  </div>
+                </div>
+                <div class="input-wrap hidden" id="replace-row">
+                  <input id="replace-input" placeholder="Replace" spellcheck="false" />
+                  <div class="input-opts">
+                    <button id="btn-replace-all" title="Replace All (Ctrl+Alt+Enter)"><i class="codicon codicon-replace-all"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="search-more"><button id="btn-search-details" title="Toggle Search Details"><i class="codicon codicon-ellipsis"></i></button></div>
+            <div id="search-details" class="hidden">
+              <div class="include-label">files to include</div>
+              <div class="input-wrap"><input id="search-include" placeholder="e.g. *.ts, src/**/include" spellcheck="false" /></div>
+              <div class="include-label">files to exclude</div>
+              <div class="input-wrap"><input id="search-exclude" placeholder="e.g. *.min.js, dist/**" spellcheck="false" /></div>
+            </div>
+          </div>
+          <div id="search-summary" class="search-summary"></div>
+          <div id="search-results"></div>
+        </section>
+      </aside>
+      <div class="sash" id="sash-sidebar"></div>
+
+      <main id="main">
+        <div id="editor-group">
+          <div id="tabs-container">
+            <div id="tabs"></div>
+            <div class="editor-actions">
+              <button id="btn-run" class="hidden" title="Run File (F5)"><i class="codicon codicon-play"></i></button>
+              <button id="btn-editor-more" title="More Actions..."><i class="codicon codicon-ellipsis"></i></button>
+            </div>
+          </div>
+          <div id="breadcrumbs"></div>
+          <div id="editor-area">
+            <div id="editor"></div>
+            <div id="media-view" class="hidden"></div>
+            <div id="watermark">
+              <div class="wm-inner">
+                <img class="wm-logo" src="logo.png" alt="" draggable="false" />
+                <div class="wm-keys">
+                  <div class="wm-row" data-cmd="palette.commands"><i class="codicon codicon-list-selection"></i><span data-i18n="Show All Commands">Show All Commands</span><span class="wm-kb"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></span></div>
+                  <div class="wm-row" data-cmd="palette.files"><i class="codicon codicon-go-to-file"></i><span data-i18n="Go to File">Go to File</span><span class="wm-kb"><kbd>Ctrl</kbd>+<kbd>P</kbd></span></div>
+                  <div class="wm-row" data-cmd="view.search"><i class="codicon codicon-search"></i><span data-i18n="Find in Files">Find in Files</span><span class="wm-kb"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></span></div>
+                  <div class="wm-row" data-cmd="terminal.toggle"><i class="codicon codicon-terminal"></i><span data-i18n="Toggle Terminal">Toggle Terminal</span><span class="wm-kb"><kbd>Ctrl</kbd>+<kbd>`</kbd></span></div>
+                </div>
+              </div>
+            </div>
+            <div id="welcome" class="welcome hidden">
+              <div class="welcome-inner">
+                <div class="welcome-head">
+                  <h1>Codec</h1>
+                  <p class="subtitle">Editing evolved</p>
+                </div>
+                <div class="welcome-cols">
+                  <div>
+                    <h2 data-i18n="Start">Start</h2>
+                    <a href="#" data-cmd="file.new"><i class="codicon codicon-new-file"></i><span data-i18n="New File...">New File...</span></a>
+                    <a href="#" data-cmd="file.open"><i class="codicon codicon-go-to-file"></i><span data-i18n="Open File...">Open File...</span></a>
+                    <a href="#" data-cmd="folder.open"><i class="codicon codicon-folder-opened"></i><span data-i18n="Open Folder">Open Folder</span>...</a>
+                    <h2 data-i18n="Recent">Recent</h2>
+                    <div id="recent-list"></div>
+                  </div>
+                  <div>
+                    <h2 data-i18n="Shortcuts">Shortcuts</h2>
+                    <div class="shortcuts">
+                      <span data-i18n="Show All Commands">Show All Commands</span><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></span>
+                      <span data-i18n="Go to File">Go to File</span><span><kbd>Ctrl</kbd>+<kbd>P</kbd></span>
+                      <span data-i18n="Find in Files">Find in Files</span><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></span>
+                      <span data-i18n="Toggle Terminal">Toggle Terminal</span><span><kbd>Ctrl</kbd>+<kbd>`</kbd></span>
+                      <span>Toggle Primary Side Bar</span><span><kbd>Ctrl</kbd>+<kbd>B</kbd></span>
+                      <span data-i18n="Run File">Run File</span><span><kbd>F5</kbd></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sash horizontal hidden" id="sash-panel"></div>
+        <section id="panel" class="hidden">
+          <header id="panel-header">
+            <div class="panel-tabs">
+              <button class="panel-tab" data-pview="output" data-i18n="Output">Output</button>
+              <button class="panel-tab" data-pview="debug" data-i18n="Debug Console">Debug Console</button>
+              <button class="panel-tab active" data-pview="terminal" data-i18n="Terminal">Terminal</button>
+              <button class="panel-tab" data-pview="ports" data-i18n="Ports">Ports</button>
+            </div>
+            <div class="panel-actions">
+              <span class="pa-group hidden" data-for="output">
+                <input class="pa-filter" id="output-filter" placeholder="Filter (e.g. text, !excludeText, text1,text2)" spellcheck="false" />
+                <select class="pa-select" id="output-channel"><option>Codec</option><option>Tasks</option></select>
+                <button id="btn-output-clear" title="Clear Output"><i class="codicon codicon-clear-all"></i></button>
+                <button id="btn-output-lock" title="Turn Auto Scrolling Off"><i class="codicon codicon-unlock"></i></button>
+              </span>
+              <span class="pa-group hidden" data-for="debug">
+                <input class="pa-filter" id="debug-filter" placeholder="Filter (e.g. text, !exclude, \escape)" spellcheck="false" />
+                <button id="btn-debug-clear" title="Clear Console"><i class="codicon codicon-clear-all"></i></button>
+              </span>
+              <button id="btn-panel-more" title="Views and More Actions..."><i class="codicon codicon-ellipsis"></i></button>
+              <span class="pa-sep"></span>
+              <button id="btn-panel-max" title="Maximize Panel Size"><i class="codicon codicon-screen-full"></i></button>
+              <button id="btn-panel-close" title="Hide Panel (Ctrl+J)"><i class="codicon codicon-close"></i></button>
+            </div>
+          </header>
+          <div id="panel-body">
+            <div class="pview hidden" id="pview-output"><pre id="output-log"></pre></div>
+            <div class="pview hidden" id="pview-debug">
+              <div id="debug-log"></div>
+              <div class="debug-input"><i class="codicon codicon-chevron-right"></i><input id="debug-input" placeholder="Please start a debug session to evaluate expressions" spellcheck="false" /></div>
+            </div>
+            <div class="pview" id="pview-terminal">
+              <div class="split-pane" id="problems-pane">
+                <div class="split-header" id="problems-header"><i class="codicon codicon-chevron-down"></i><span data-i18n="Problems">Problems</span><span class="ptab-badge hidden" id="problems-badge"></span></div>
+                <div class="split-body" id="problems-body">
+                  <div class="pfilter"><input id="problems-filter" placeholder="Filter (e.g. text, **/*.ts, !**/node_modules/**, @source:ts)" spellcheck="false" /><i class="codicon codicon-filter"></i></div>
+                  <div id="problems-list"></div>
+                </div>
+              </div>
+              <div class="split-sash" id="split-sash"></div>
+              <div class="split-pane" id="terminal-pane">
+                <div class="split-header">
+                  <i class="codicon codicon-chevron-down"></i><span>Terminal</span>
+                  <div class="split-actions">
+                    <button id="btn-term-new" title="New Terminal (Ctrl+Shift+`)"><i class="codicon codicon-add"></i></button>
+                    <button id="btn-term-profiles" title="Launch Profile..."><i class="codicon codicon-chevron-down"></i></button>
+                    <button id="btn-term-more" title="More Actions..."><i class="codicon codicon-ellipsis"></i></button>
+                  </div>
+                </div>
+                <div class="split-body term-body">
+                  <div id="terminals"></div>
+                  <div id="term-list" class="hidden"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pview hidden" id="pview-ports">
+              <div class="ports-empty">
+                <p data-i18n="No forwarded ports. Forward a port to access your running services locally.">No forwarded ports. Forward a port to access your running services locally.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer id="statusbar" class="hidden">
+      <div class="left"><span id="sb-folder"></span></div>
+      <div class="right">
+        <span id="sb-pos" class="clickable" title="Go to Line/Column"></span>
+        <span id="sb-indent" class="clickable" title="Select Indentation"></span>
+        <span id="sb-encoding">UTF-8</span>
+        <span id="sb-eol" class="clickable" title="Select End of Line Sequence"></span>
+        <span id="sb-lang" class="clickable" title="Select Language Mode"></span>
+      </div>
+    </footer>
+
+    <div id="settings-modal" class="hidden">
+      <div class="sm-window">
+        <header class="sm-titlebar">
+          <span class="sm-title"><i class="codicon codicon-settings"></i><span data-i18n="Settings">Settings</span></span>
+          <div class="sm-actions">
+            <button id="sm-open-json" title="Open Settings (JSON)"><i class="codicon codicon-json"></i></button>
+            <button id="sm-close" title="Close (Escape)"><i class="codicon codicon-close"></i></button>
+          </div>
+        </header>
+        <div class="sm-search">
+          <input id="sm-search" placeholder="Search settings" spellcheck="false" />
+          <span id="sm-count"></span>
+          <i class="codicon codicon-filter"></i>
+        </div>
+        <div class="sm-scope">
+          <div class="sm-tabs"><span class="sm-tab active" data-i18n="User">User</span><span class="sm-tab" data-i18n="Workspace">Workspace</span></div>
+          <button class="sm-sync" id="sm-reset-all" data-i18n="Reset All Settings">Reset All Settings</button>
+        </div>
+        <div class="sm-body">
+          <nav id="sm-toc"></nav>
+          <div id="sm-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="palette" class="hidden">
+      <input id="palette-input" spellcheck="false" />
+      <div id="palette-list"></div>
+    </div>
+    <div id="menu-layer"></div>
+    <div id="toast" class="hidden"></div>
+
+    <script src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+    <script src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+    <script src="../node_modules/marked/marked.min.js"></script>
+    <script src="../node_modules/dompurify/dist/purify.min.js"></script>
+    <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+    <script src="icons.js"></script>
+    <script src="languages.js"></script>
+    <script src="app.js"></script>
+    <script src="extensions-ui.js"></script>
+  </body>
+</html>
